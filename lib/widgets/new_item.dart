@@ -15,6 +15,7 @@ class NewItem extends StatefulWidget {
 
 class _NewItemState extends State<NewItem> {
   final _formKey = GlobalKey<FormState>();
+  var isSending = false;
 
   String _name = '';
   int _quantity = 1;
@@ -27,7 +28,9 @@ class _NewItemState extends State<NewItem> {
     }
     _formKey.currentState!.save();
 
-    print('$_name, $_quantity, $_category');
+    setState(() {
+      isSending = true;
+    });
 
     final response = await http.post(
       Uri.https(
@@ -43,10 +46,16 @@ class _NewItemState extends State<NewItem> {
       }),
     );
 
-    print(response.body);
-    print(response.statusCode);
+    final itemId = jsonDecode(response.body)['name'];
 
-    if (context.mounted) Navigator.of(context).pop();
+    if (context.mounted) {
+      Navigator.of(context).pop(GroceryItem(
+        id: itemId,
+        name: _name,
+        quantity: _quantity,
+        category: _category,
+      ));
+    }
   }
 
   @override
@@ -140,14 +149,22 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      _formKey.currentState!.reset();
-                    },
+                    onPressed: isSending
+                        ? null
+                        : () {
+                            _formKey.currentState!.reset();
+                          },
                     child: const Text('Reset'),
                   ),
                   ElevatedButton(
-                    onPressed: _submitForm,
-                    child: const Text('Save'),
+                    onPressed: isSending ? null : _submitForm,
+                    child: isSending
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(),
+                          )
+                        : const Text('Save'),
                   ),
                 ],
               )

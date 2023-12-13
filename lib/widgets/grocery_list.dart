@@ -15,6 +15,7 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
+  var _isLoading = true;
 
   @override
   void initState() {
@@ -29,6 +30,7 @@ class _GroceryListState extends State<GroceryList> {
     final response = await http.get(url);
     final listData = jsonDecode(response.body) as Map<String, dynamic>;
     final List<GroceryItem> _loadedItems = [];
+
     for (var grocery in listData.entries) {
       final category = categories.entries
           .firstWhere(
@@ -45,16 +47,18 @@ class _GroceryListState extends State<GroceryList> {
     }
     setState(() {
       _groceryItems = _loadedItems;
+      _isLoading = false;
     });
   }
 
   void _addItem() async {
-    await Navigator.of(context).push<GroceryItem>(
+    final newItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
         builder: (ctx) => const NewItem(),
       ),
     );
-    _loadItems();
+
+    if (newItem != null) _groceryItems.add(newItem);
   }
 
   @override
@@ -62,6 +66,12 @@ class _GroceryListState extends State<GroceryList> {
     Widget content = const Center(
       child: Text('No items added yet.'),
     );
+
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
     if (_groceryItems.isNotEmpty) {
       content = ListView.builder(
