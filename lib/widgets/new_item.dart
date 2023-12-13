@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
 import 'package:shopping_list/models/grocery_item.dart';
@@ -11,33 +14,43 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
+  final _formKey = GlobalKey<FormState>();
+
+  String _name = '';
+  int _quantity = 1;
+  Category _category = categories[Categories.vegetables]!;
+
+  void _submitForm() async {
+    final isValid = _formKey.currentState!.validate();
+    if (!isValid) {
+      return;
+    }
+    _formKey.currentState!.save();
+
+    print('$_name, $_quantity, $_category');
+
+    final response = await http.post(
+      Uri.https(
+          'flutter-prep-21d82-default-rtdb.europe-west1.firebasedatabase.app',
+          'shopping-list.json'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'name': _name,
+        'quantity': _quantity,
+        'category': _category.title,
+      }),
+    );
+
+    print(response.body);
+    print(response.statusCode);
+
+    if (context.mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
-
-    String _name = '';
-    int _quantity = 1;
-    Category _category = categories[Categories.vegetables]!;
-
-    void _submitForm() {
-      final isValid = _formKey.currentState!.validate();
-      if (!isValid) {
-        return;
-      }
-      _formKey.currentState!.save();
-
-      print('$_name, $_quantity, $_category');
-
-      Navigator.of(context).pop(
-        GroceryItem(
-          id: DateTime.now().toString(),
-          name: _name,
-          quantity: _quantity,
-          category: _category,
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add a new item'),
