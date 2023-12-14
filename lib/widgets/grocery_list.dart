@@ -31,6 +31,14 @@ class _GroceryListState extends State<GroceryList> {
         'shopping-list.json',
       );
       final response = await http.get(url);
+
+      print(response.body);
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
       final listData = jsonDecode(response.body) as Map<String, dynamic>;
       final List<GroceryItem> _loadedItems = [];
 
@@ -67,7 +75,42 @@ class _GroceryListState extends State<GroceryList> {
       ),
     );
 
-    if (newItem != null) _groceryItems.add(newItem);
+    if (newItem != null) {
+      setState(() {
+        _groceryItems.add(newItem);
+      });
+    }
+  }
+
+  void _removeItem(GroceryItem item) async {
+    final index = _groceryItems.indexOf(item);
+    setState(() {
+      _groceryItems.remove(item);
+    });
+
+    try {
+      final url = Uri.https(
+        'flutter-prep-21d82-default-rtdb.europe-west1.firebasedatabase.app',
+        'shopping-list/${item.id}.json',
+      );
+      await http.delete(url);
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Item removed'),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _groceryItems.insert(index, item);
+      });
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to remove item'),
+        ),
+      );
+    }
   }
 
   @override
@@ -88,9 +131,7 @@ class _GroceryListState extends State<GroceryList> {
         itemBuilder: (ctx, index) => Dismissible(
           key: ValueKey(_groceryItems[index].id),
           onDismissed: (direction) {
-            setState(() {
-              _groceryItems.removeAt(index);
-            });
+            _removeItem(_groceryItems[index]);
           },
           child: ListTile(
             title: Text(_groceryItems[index].name),
