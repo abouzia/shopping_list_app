@@ -16,39 +16,48 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   var _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
-    _loadItems();
     super.initState();
+    _loadItems();
   }
 
   void _loadItems() async {
-    final url = Uri.https(
+    try {
+      final url = Uri.https(
         'flutter-prep-21d82-default-rtdb.europe-west1.firebasedatabase.app',
-        'shopping-list.json');
-    final response = await http.get(url);
-    final listData = jsonDecode(response.body) as Map<String, dynamic>;
-    final List<GroceryItem> _loadedItems = [];
-
-    for (var grocery in listData.entries) {
-      final category = categories.entries
-          .firstWhere(
-              (category) => category.value.title == grocery.value['category'])
-          .value;
-      _loadedItems.add(
-        GroceryItem(
-          id: grocery.key,
-          name: grocery.value['name'],
-          quantity: grocery.value['quantity'],
-          category: category,
-        ),
+        'shopping-list.json',
       );
+      final response = await http.get(url);
+      final listData = jsonDecode(response.body) as Map<String, dynamic>;
+      final List<GroceryItem> _loadedItems = [];
+
+      for (var grocery in listData.entries) {
+        final category = categories.entries
+            .firstWhere(
+                (category) => category.value.title == grocery.value['category'])
+            .value;
+        _loadedItems.add(
+          GroceryItem(
+            id: grocery.key,
+            name: grocery.value['name'],
+            quantity: grocery.value['quantity'],
+            category: category,
+          ),
+        );
+      }
+      setState(() {
+        _groceryItems = _loadedItems;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Failed to load data, please try again later.';
+      });
     }
-    setState(() {
-      _groceryItems = _loadedItems;
-      _isLoading = false;
-    });
   }
 
   void _addItem() async {
@@ -93,6 +102,12 @@ class _GroceryListState extends State<GroceryList> {
             trailing: Text('${_groceryItems[index].quantity}x'),
           ),
         ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      content = Center(
+        child: Text(_errorMessage!),
       );
     }
     return Scaffold(
